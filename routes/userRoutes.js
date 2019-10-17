@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const config = require('config');
 const User = require("../model/UserSchema");
-
+const auth = require('../middlewares/auth');
 // environment variable setup 
 const JWT_SECRET = process.env.JWT_SECRET || config.get("JWT_SECRET");
 
@@ -14,10 +14,22 @@ const apiParamsSchema = Joi.object({
     username: Joi.string().required(),
     password: Joi.string().min(8).required()
 });
-
-// get request 
-router.get('/user', (req, res) => {
-    res.send("Router running succesfully");
+   
+// @route POST api/user/loggedin 
+router.get('/loggedin', auth, async(req, res) => {
+    const user = await User.find({_id: req.user.id}, {password: 0});
+    
+    try {
+        res.json({
+            success: true,
+            user
+        })
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        })
+    }
 })
 
 
