@@ -15,7 +15,11 @@ const apiParamsSchema = Joi.object({
     password: Joi.string().min(8).required()
 });
    
-// @route POST api/user/loggedin 
+// @route api/user/loggedin 
+// @method Get
+// @desc getting logged in user data
+// @access Public
+
 router.get('/loggedin', auth, async(req, res) => {
     const user = await User.find({_id: req.user.id}, {password: 0});
     
