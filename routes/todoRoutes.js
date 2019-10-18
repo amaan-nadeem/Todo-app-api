@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const express = require("express");
 const routes = express.Router();
 const Todo = require("../model/TodoSchema");
@@ -96,22 +97,73 @@ routes.post("/create-tasks", auth, async (req, res) => {
 // @desc update task
 // @access private
 
+const putApiParamsSchema = Joi.object({
+  title: Joi.string(),
+  description: Joi.string(),
+  isCompleted: Joi.bool()
+});
+
 routes.put("/update-task/:id", auth, async (req, res) => {
+  const { title, description, isCompleted } = req.body;
+  const isValidId = mongoose.Types.ObjectId.isValid(req.params.id);
+
+  // checking todo id
+  if (!isValidId) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid todo id"
+    });
+  }
+
+  // checking typo in returning body
+  const { error } = putApiParamsSchema.validate({
+    title,
+    description,
+    isCompleted
+  });
+
+  // checking allowed params
+  const updates = Object.keys(req.body);
+  const allowdUpdates = ["title", "description", "isCompleted"];
+  const isValidOperations = updates.every(update =>
+    updates.includes(allowdUpdates)
+  );
+
+  if (!isValidOperations) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid API parameters"
+    });
+  }
+
+  // when no object is being given to be updated
+  if (Object.keys(req.body) < 1) {
+    return res.status(400).json({
+      success: false,
+      message: "Nothing to given to be Updated"
+    });
+  }
+
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.details[0].message
+    });
+  }
+
   // task id
   const _id = req.params.id;
   try {
     // finding task and update
-    const taskToUpdate = await Todo.findByIdAndUpdate({ _id }, req.body);
-    await taskToUpdate.save();
-
-    // cross checking the updated task
-    const UpdatedTask = await Todo.find({ _id });
+    const taskToUpdate = await Todo.findByIdAndUpdate({ _id }, req.body, {
+      new: true
+    });
 
     // sending the response
     res.json({
       success: true,
-      message: "Task has been updated",
-      UpdatedTask
+      message: "Task has been Updated",
+      taskToUpdate
     });
   } catch (error) {
     res.status(500).json({
@@ -126,18 +178,30 @@ routes.put("/update-task/:id", auth, async (req, res) => {
 // @access private
 
 routes.delete("/delete-task/:id", auth, async (req, res) => {
+  // regular expression of id check!
+  const isValidId = mongoose.Types.ObjectId.isValid(req.params.id);
+  if (!isValidId) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid Todo ID"
+    });
+  }
+
   // task id
   const _id = req.params.id;
   try {
     // finding task and delete
-    const taskToDelete = await Todo.findByIdAndDelete({ _id }, req.body);
-    await taskToDelete.save();
-
-    // cross checking has the task deleted
-    const DeletedTask = await Todo.find({ _id });
+    const taskToDelete = await Todo.findByIdAndDelete({ _id });
+    console.log(taskToDelete);
+    if (!taskToDelete) {
+      return res.status(400).json({
+        success: false,
+        message: "No Task found against the given Task ID"
+      });
+    }
 
     // sending the response
-    res.json({
+    return res.json({
       success: true,
       message: "Task has been Deleted",
       taskToDelete
