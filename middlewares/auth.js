@@ -5,7 +5,7 @@ const JWT_SECRET = process.env.JWT_SECRET || config.get("JWT_SECRET");
 
 module.exports = async (req, res, next) => {
   const token = req.header("x-auth-header");
-  
+
   // checking if the token exists or not
   if (!token) {
     return res.status(401).json({
@@ -15,7 +15,7 @@ module.exports = async (req, res, next) => {
   }
 
   try {
-    // decoding json web token 
+    // decoding json web token
     const decoded = jwt.verify(token, JWT_SECRET);
 
     // checking for the user if exists
